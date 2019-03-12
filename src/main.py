@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from scratch import calc_size, find_corners, Point2f
 from itertools import product
+import sys
 plt.rcParams['figure.figsize'] = [15, 10]
 canny_limit = 65
 
@@ -25,7 +26,29 @@ def find_largest_contour(imgx):
             largest_contour = contour
     return largest_contour
 
-img = cv2.imread('cropped_sudoku.jpg')
+def remove_lines(img):
+    ret,img2 = cv2.threshold(~img,127,255,cv2.THRESH_BINARY)
+    edges = cv2.Canny(img2,100,150,apertureSize = 3)
+
+    # probably need to get this down to 450x450 to make the threshold work
+    lines = cv2.HoughLines(edges,1,np.pi/180, 100)
+    for line in lines:
+        for rho,theta in line:
+            a = np.cos(theta)
+            b = np.sin(theta)
+            x0 = a*rho
+            y0 = b*rho
+            x1 = int(x0 + 1000*(-b))
+            y1 = int(y0 + 1000*(a))
+            x2 = int(x0 - 1000*(-b))
+            y2 = int(y0 - 1000*(a))
+
+            cv2.line(img,(x1,y1),(x2,y2),(255,255,255), 5)
+
+    return img
+
+
+img = cv2.imread(sys.argv[1])
 means = cv2.fastNlMeansDenoising(img)
 
 #img = cv2.cvtColor(means,cv2.COLOR_BGR2GRAY)
@@ -48,24 +71,8 @@ imgx = cv2.warpPerspective(imgx, transform, (int(size.width), int(size.height)))
 
 imgx1 = cv2.GaussianBlur(imgx, (0, 0), 3);
 imgx2 = cv2.addWeighted(imgx, 1.5, imgx1, -0.5, 0);
-ret,imgx2 = cv2.threshold(~imgx2,127,255,cv2.THRESH_BINARY)
-edges = cv2.Canny(imgx2,100,150,apertureSize = 3)
 
-# probably need to get this down to 450x450 to make the threshold work
-lines = cv2.HoughLines(edges,1,np.pi/180, 100)
-for line in lines:
-    for rho,theta in line:
-        a = np.cos(theta)
-        b = np.sin(theta)
-        x0 = a*rho
-        y0 = b*rho
-        x1 = int(x0 + 1000*(-b))
-        y1 = int(y0 + 1000*(a))
-        x2 = int(x0 - 1000*(-b))
-        y2 = int(y0 - 1000*(a))
-
-        cv2.line(imgx,(x1,y1),(x2,y2),(255,255,255), 5)
-
+imgx = remove_lines(imgx2)
 
 width, height, _ = imgx.shape
 sq_width = width // 9
