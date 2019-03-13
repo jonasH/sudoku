@@ -48,47 +48,56 @@ def remove_lines(img):
 
     return img
 
-
-img = cv2.imread(sys.argv[1])
-means = cv2.fastNlMeansDenoising(img)
-
-#img = cv2.cvtColor(means,cv2.COLOR_BGR2GRAY)
-ret,img = cv2.threshold(means,127,255,cv2.THRESH_BINARY)
-#make this always resize to 450x450 or there about
-imgx = cv2.resize(img, (0,0), fx=0.25, fy=0.25)
+def load_img(filename):
+    img = cv2.imread(filename)
+    means = cv2.fastNlMeansDenoising(img)
+    ret,img = cv2.threshold(means,127,255,cv2.THRESH_BINARY)
+    imgx = cv2.resize(img, (0,0), fx=0.25, fy=0.25)
+    return imgx
 
 
+def unwrap_img(imgx):
+    largest_contour = find_largest_contour(imgx)
+    corners = find_corners(largest_contour)
+    size = calc_size(corners)
+    flat_corners = []
+    flat_corners.append(Point2f(0,0))
+    flat_corners.append(Point2f(size.width,0))
+    flat_corners.append(Point2f(size.width, size.height))
+    flat_corners.append(Point2f(0, size.height))
+    transform = cv2.getPerspectiveTransform(convert_corners(corners), convert_corners(flat_corners))
+    imgx = cv2.warpPerspective(imgx, transform, (int(size.width), int(size.height)))
 
-largest_contour = find_largest_contour(imgx)
-rect = cv2.boundingRect(largest_contour)
-corners = find_corners(largest_contour)
-size = calc_size(corners)
-flat_corners = []
-flat_corners.append(Point2f(0,0))
-flat_corners.append(Point2f(size.width,0))
-flat_corners.append(Point2f(size.width, size.height))
-flat_corners.append(Point2f(0, size.height))
-transform = cv2.getPerspectiveTransform(convert_corners(corners), convert_corners(flat_corners))
-imgx = cv2.warpPerspective(imgx, transform, (int(size.width), int(size.height)))
+    imgx1 = cv2.GaussianBlur(imgx, (0, 0), 3);
+    imgx2 = cv2.addWeighted(imgx, 1.5, imgx1, -0.5, 0);
+    return imgx2
 
-imgx1 = cv2.GaussianBlur(imgx, (0, 0), 3);
-imgx2 = cv2.addWeighted(imgx, 1.5, imgx1, -0.5, 0);
 
-imgx = remove_lines(imgx2)
+def extact_numbers(imgx):
+    width, height, _ = imgx.shape
+    sq_width = width // 9
+    sq_height = height // 9
+    xs = range(0, width - sq_width, sq_width)
+    ys = range(0, height - sq_height, sq_height)
+    i = 1
+    for y in ys:
+        for x in xs:
+            sub_img = imgx[y:y + sq_height, x:x+sq_width]
+            largest_contour = find_largest_contour(sub_img)
+            if len(largest_contour):
+                rect = cv2.boundingRect(largest_contour)
+                cv2.rectangle(sub_img, rect, (255, 0, 0), 1)
+            plt.subplot(9,9, i), plt.imshow(sub_img)
+            i += 1
+    plt.show()
 
-width, height, _ = imgx.shape
-sq_width = width // 9
-sq_height = height // 9
-xs = range(0, width - sq_width, sq_width)
-ys = range(0, height - sq_height, sq_height)
-i = 1
-for y in ys:
-    for x in xs:
-        sub_img = imgx[y:y + sq_height, x:x+sq_width]
-        largest_contour = find_largest_contour(sub_img)
-        if len(largest_contour):
-            rect = cv2.boundingRect(largest_contour)
-            cv2.rectangle(sub_img, rect, (255, 0, 0), 1)
-        plt.subplot(9,9, i), plt.imshow(sub_img)
-        i += 1
-plt.show()
+
+def main():
+    imgx = load_img(sys.argv[1])
+
+    imgx2 = unwrap_img(imgx)
+    imgx = remove_lines(imgx2)
+    extact_numbers(imgx)
+
+if __name__ == '__main__':
+    main()
