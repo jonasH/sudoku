@@ -24,6 +24,7 @@ def find_largest_contour(imgx):
         area = cv2.contourArea(contour, False)
         if area > largest_area:
             largest_contour = contour
+            largest_area = area
     return largest_contour
 
 def remove_lines(img):
@@ -52,9 +53,10 @@ img = cv2.imread(sys.argv[1])
 means = cv2.fastNlMeansDenoising(img)
 
 #img = cv2.cvtColor(means,cv2.COLOR_BGR2GRAY)
-ret,img2 = cv2.threshold(means,127,255,cv2.THRESH_BINARY)
+ret,img = cv2.threshold(means,127,255,cv2.THRESH_BINARY)
 #make this always resize to 450x450 or there about
-imgx = cv2.resize(img2, (0,0), fx=0.25, fy=0.25)
+imgx = cv2.resize(img, (0,0), fx=0.25, fy=0.25)
+
 
 
 largest_contour = find_largest_contour(imgx)
