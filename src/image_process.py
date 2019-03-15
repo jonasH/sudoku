@@ -59,7 +59,7 @@ def find_corners(largestContour):
         
         return corners
 
-
+# TODO remove this 
 def convert_corners(corners) -> Array[np.float32]:
     result = []
     for corner in corners:
@@ -133,7 +133,6 @@ def extact_numbers(imgx):
     sq_height = height // 9
     xs = range(0, width - sq_width, sq_width)
     ys = range(0, height - sq_height, sq_height)
-    #i = 1
     for y in ys:
         row_result = []
         for x in xs:
@@ -141,15 +140,11 @@ def extact_numbers(imgx):
             largest_contour = find_largest_contour(sub_img)
             if len(largest_contour):
                 rect = cv2.boundingRect(largest_contour)
-                #cv2.rectangle(sub_img, rect, (255, 0, 0), 1)
-                #plt.subplot(9,9, i), plt.imshow(sub_img)
                 number = sub_img[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+ rect[2]]
             else:
                 number = []
-            #i += 1
             row_result.append(number)
         result.append(row_result)
-    #plt.show()
 
     return np.array(result)
 
