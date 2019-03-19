@@ -3,8 +3,6 @@ from image_process import extract_squares
 import sys
 plt.rcParams['figure.figsize'] = [15, 10]
 
-
-
 def main():
     squares = extract_squares(sys.argv[1])
     i = 1

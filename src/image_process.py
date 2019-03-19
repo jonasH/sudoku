@@ -72,11 +72,22 @@ def find_largest_contour(imgx: Array[np.uint8]) -> Array[np.int32]:
     contours, hierarchy = cv2.findContours(edgesx, cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
     largest_area = 0.0
     largest_contour = []
+    if __debug__:
+        debug_img = imgx.copy()
     for contour in contours:
         area = cv2.contourArea(contour, False)
         if area > largest_area:
             largest_contour = contour
             largest_area = area
+            if __debug__:
+                rect = cv2.boundingRect(largest_contour)
+                cv2.rectangle(debug_img, rect, (255, 0, 0), 3)
+
+    if __debug__:
+        plt.subplot(1,2,1),plt.imshow(edgesx)
+        plt.subplot(1,2,2),plt.imshow(debug_img)
+        plt.show()
+
     return largest_contour
 
 def remove_lines(img: Array[np.uint8]):
@@ -103,14 +114,15 @@ def remove_lines(img: Array[np.uint8]):
 
 def load_img(filename):
     img = cv2.imread(filename)
-    means = cv2.fastNlMeansDenoising(img)
-    ret,img = cv2.threshold(means,127,255,cv2.THRESH_BINARY)
-    imgx = cv2.resize(img, (0,0), fx=0.25, fy=0.25)
-    return imgx
+    img = cv2.resize(img, (0,0), fx=0.25, fy=0.25)
+    img = cv2.fastNlMeansDenoising(img)
+    ret,img = cv2.threshold(img,127,255,cv2.THRESH_BINARY)
+    return img
 
 
 def unwrap_img(imgx):
     largest_contour = find_largest_contour(imgx)
+
     corners = find_corners(largest_contour)
     size = calc_size(corners)
     flat_corners = []
@@ -150,6 +162,16 @@ def extact_numbers(imgx):
 
 def extract_squares(filename: str):
     imgx = load_img(filename)
+    if __debug__:
+        plt.imshow(imgx)
+        plt.show()
     imgx2 = unwrap_img(imgx)
+    if __debug__:
+        plt.imshow(imgx2)
+        plt.show()
     imgx = remove_lines(imgx2)
+    if __debug__:
+        plt.imshow(imgx)
+        plt.show()
+
     return extact_numbers(imgx)
