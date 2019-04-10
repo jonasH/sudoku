@@ -69,7 +69,7 @@ def convert_corners(corners) -> Array[np.float32]:
 
 def find_largest_contour(imgx: Array[np.uint8]) -> Array[np.int32]:
     edgesx = cv2.Canny(imgx, canny_limit, canny_limit * 2, apertureSize=3)
-    contours, hierarchy = cv2.findContours(edgesx, cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(edgesx, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     largest_area = 0.0
     largest_contour = []
     if __debug__:
@@ -90,33 +90,48 @@ def find_largest_contour(imgx: Array[np.uint8]) -> Array[np.int32]:
 
     return largest_contour
 
+def close_to_vertical_or_horizontal(a):
+    limit = 1
+    a = abs(a)
+    if a < limit:
+        return True
+    if abs(a - 180) < limit:
+        return True
+
+    return False
+
 def remove_lines(img: Array[np.uint8]):
 
     ret,img2 = cv2.threshold(~img,127,255,cv2.THRESH_BINARY)
     edges = cv2.Canny(img2,100,150,apertureSize = 3)
 
     # probably need to get this down to 450x450 to make the threshold work
-    lines = cv2.HoughLines(edges,1,np.pi/180, 100)
+    lines = cv2.HoughLines(edges,1,np.pi/180, 70)
     for line in lines:
         for rho,theta in line:
             a = np.cos(theta)
             b = np.sin(theta)
-            x0 = a*rho
-            y0 = b*rho
-            x1 = int(x0 + 1000*(-b))
-            y1 = int(y0 + 1000*(a))
-            x2 = int(x0 - 1000*(-b))
-            y2 = int(y0 - 1000*(a))
-
-            cv2.line(img,(x1,y1),(x2,y2),(255,255,255), 5)
+            a_deg = a * 180
+            b_deg = b * 180
+            if close_to_vertical_or_horizontal(a_deg) and close_to_vertical_or_horizontal(b_deg):
+                x0 = a*rho
+                y0 = b*rho
+                x1 = int(x0 + 1000*(-b))
+                y1 = int(y0 + 1000*(a))
+                x2 = int(x0 - 1000*(-b))
+                y2 = int(y0 - 1000*(a))
+                cv2.line(img,(x1,y1),(x2,y2),(255,255,255), 10)
 
     return img
 
 def load_img(filename):
     img = cv2.imread(filename)
-    img = cv2.resize(img, (0,0), fx=0.25, fy=0.25)
     img = cv2.fastNlMeansDenoising(img)
     ret,img = cv2.threshold(img,127,255,cv2.THRESH_BINARY)
+    min_side = min(img.shape[0:1])
+    scale_factor = 500 / min_side
+    #scale_factor = 0.25
+    img = cv2.resize(img, (0,0), fx=scale_factor, fy=scale_factor)
     return img
 
 
@@ -160,11 +175,10 @@ def extact_numbers(imgx):
 
     return np.array(result)
 
+
+
 def extract_squares(filename: str):
     imgx = load_img(filename)
-    if __debug__:
-        plt.imshow(imgx)
-        plt.show()
     imgx2 = unwrap_img(imgx)
     if __debug__:
         plt.imshow(imgx2)
